@@ -1,98 +1,90 @@
 class IDS:
-    def __init__(self, size, start, goal):
-        self.N = size  # Number of vertices in the graph
-        self.G = [[False] * size for _ in range(size)]  # Graph as an adjacency matrix
-        self.sta = []  # Stack for Depth-Limited Search
-        self.goal = goal  # Goal city index
-        self.start_city = start  # Starting city index
-        self.Acc = [False] * size  # Visited array
-        self.L = [0] * size  # Levels of vertices
-        self.limit = 0  # Initial depth limit
-        self.path = []  # To store the path to the goal
-        self.setup_graph()  # Initialize graph connections
+    def __init__(self, start, goal, size=12):
+        self.N = size  # number of vertices in the graph
+        self.G = [[False] * size for _ in range(size)]
+        self.start_city = start
+        self.goal = goal
+        self.visited = [False] * size
+        self.level = [0] * size
+        self.limit = 0
+        self.setup_graph()
+        self.parent = [-1] * size
 
     def setup_graph(self):
-        # Undirected graph edges setup
-        self.G[0][1] = self.G[1][0] = True
-        self.G[0][8] = self.G[8][0] = True
-        self.G[0][4] = self.G[4][0] = True
-        self.G[1][2] = self.G[2][1] = True
-        self.G[1][3] = self.G[3][1] = True
-        self.G[2][6] = self.G[6][2] = True
-        self.G[3][4] = self.G[4][3] = True
-        self.G[3][5] = self.G[5][3] = True
-        self.G[6][7] = self.G[7][6] = True
-        self.G[8][9] = self.G[9][8] = True
-        self.G[9][10] = self.G[10][9] = True
-        self.G[10][11] = self.G[11][10] = True
+        edges = [(0, 1),
+                 (0, 8),
+                 (0, 4),
+                 (1, 2),
+                 (1, 3),
+                 (2, 6),
+                 (3, 4),
+                 (3, 5),
+                 (6, 7),
+                 (8, 9),
+                 (9, 10),
+                 (10, 11)]
+        for (i, j) in edges:
+            self.G[i][j] = self.G[j][i] = True
 
-    def search(self):
-        while True:
-            self.sta = [self.start_city]
-            self.Acc = [False] * self.N
-            self.L = [0] * self.N
-            self.Acc[self.start_city] = True
-            print(f"Starting search with depth limit: {self.limit}")
-
-            if self.dls():
-                print("Goal found! Path to the goal:", " -> ".join(self.path))
-                return True
-            if not self.inc_limit():
-                print("All nodes visited without finding the goal.")
-                return False
+    def ids(self):
+        while not self.dls():
             self.limit += 1
+            self.visited = [False] * self.N
+            self.level = [0] * self.N
+            self.parent = [-1] * self.N
 
     def dls(self):
-        while self.sta:
-            at = self.sta.pop()
-            self.path.append(self.ret_city(at))
-            
-            if at == self.goal:
+        stack = [self.start_city]
+        self.visited[self.start_city] = True
+        while stack:
+            current = stack.pop()
+            if current == self.goal:
+                self.print_path(current)
+                print(f"Cities visited before finding the goal at depth {self.limit}:\nTop of stack ->",
+                      [self.ret_city(city) for city in range(self.N) if
+                       self.visited[city] and self.level[city] == self.limit])
                 return True
-
-            print(f"\n--> At {self.ret_city(at)} [current depth: {self.L[at]}]")
-
-            for i in range(self.N):
-                if not self.Acc[i] and self.G[at][i] and self.L[at] + 1 <= self.limit:
-                    self.sta.append(i)
-                    self.L[i] = self.L[at] + 1
-                    self.Acc[i] = True
-
-            print("Current stack:", [self.ret_city(city) for city in self.sta])
-
-            if self.L[at] == 0:
-                print("Visited at depth 0:", self.ret_city(at))
-            else:
-                print(f"Visited at depth {self.L[at]}:", [self.ret_city(city) for city in range(self.N) if self.L[city] == self.L[at]])
-                
-            self.path.pop()  # Remove the current node from path if it's not the goal
+            if self.level[current] < self.limit:
+                children = [i for i in range(self.N) if self.G[current][i] and not self.visited[i]]
+                for neighbor in reversed(children):
+                    stack.append(neighbor)
+                    self.visited[neighbor] = True
+                    self.level[neighbor] = self.level[current] + 1
+                    self.parent[neighbor] = current
+        print("\n+------------------------------------------+")
+        print(f"\nCities visited at depth {self.limit}: ", [self.ret_city(city) for city in range(self.N) if self.visited[city]])
         return False
 
-    def inc_limit(self):
-        return not all(self.Acc)
+    def print_path(self, current):
+        path = []
+        while current != -1:
+            path.append(current)
+            current = self.parent[current]
+        path.reverse()
+        print("\n+------------------------------------------+")
+        print(f"Goal is reached at depth {self.limit}\nPath:", " ".join(self.ret_city(city) for city in path))
 
     @staticmethod
     def ret_city(i):
-        cities = ["Buraydah", "Unayzah", "AlZulfi", "Al-Badai", "Riyadh-Alkhabra", "AlRass",
-                  "UmSedrah", "Shakra", "Al-Bukayriyah", "Sheehyah", "Dhalfa", "Mulida"]
-        return cities[i] if 0 <= i < len(cities) else "Unknown"
+        cities = ["Buraydah", "Unayzah", "AlZulfi",
+                "Al-Badai", "Riyadh-Alkhabra", "AlRass",
+                "UmSedrah", "Shakra", "Al-Bukayriyah",
+                "Sheehyah", "Dhalfa", "Mulida"]
+        return cities[i]
 
-def main():
-    print("Choose a city to start with (its number): ")
-    cities = ["Buraydah", "Unayzah", "AlZulfi", "Al-Badai", "Riyadh-Alkhabra", "AlRass",
-              "UmSedrah", "Shakra", "Al-Bukayriyah", "Sheehyah", "Dhalfa", "Mulida"]
-    for idx, city in enumerate(cities):
-        print(f"{city} [{idx}]")
-    
-    city_choice = int(input("\nInput starting city number: "))
-    goal = int(input("\nInput goal city number: "))
-    
-    if city_choice < 0 or city_choice >= 12:
-        print("Invalid input, please restart the program.")
-        return
-    
-    searcher = IDS(12, city_choice, goal)
-    searcher.search()
 
 if __name__ == "__main__":
-    main()
+    for i in range(12):
+        print(f"[{i}]: {IDS.ret_city(i)}")
+
+    print("\nChoose a city number to start:")
+    print("Input: ", end="")
+    chosen_city = int(input())
+
+    print("\nChoose a city number for the goal: ")
+    print("Input: ", end="")
+    goal = int(input())
+
+    ids = IDS(chosen_city, goal)
+    ids.ids()
+
