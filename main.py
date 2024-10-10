@@ -40,9 +40,6 @@ class IDS:
             current = stack.pop()
             if current == self.goal:
                 self.print_path(current)
-                print(f"Cities visited before finding the goal at depth {self.limit}:\nTop of stack ->",
-                      [self.ret_city(city) for city in range(self.N) if
-                       self.visited[city] and self.level[city] == self.limit])
                 return True
             if self.level[current] < self.limit:
                 children = [i for i in range(self.N) if self.G[current][i] and not self.visited[i]]
